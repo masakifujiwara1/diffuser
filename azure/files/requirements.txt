@@ -1,0 +1,42 @@
+# PyTorch with CUDA 11.1 support
+--find-links https://download.pytorch.org/whl/torch_stable.html
+
+# Core dependencies
+numpy
+gymnasium>=0.28.0
+mujoco-py==2.1.2.14
+matplotlib>=3.5.0
+torch==1.9.1+cu111
+typed-argument-parser
+
+# D4RL dataset
+git+https://github.com/Farama-Foundation/d4rl@f2a05c0d66722499bf8031b094d9af3aea7c372b#egg=d4rl
+
+# Image and video processing
+scikit-image>=0.20.0
+scikit-video>=1.1.11
+pillow
+
+# Development and utilities
+gitpython
+einops
+tqdm
+pandas
+wandb
+humanfriendly>=4.7
+
+# JAX ecosystem
+flax>=0.3.5
+jax>=0.2.21
+
+# Distributed computing
+ray>=2.31.0
+
+# Google Cloud utilities
+crcmod
+google-api-python-client
+cryptography
+gdown
+
+# Custom package
+git+https://github.com/JannerM/doodad.git@janner
