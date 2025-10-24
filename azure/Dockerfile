@@ -2,7 +2,7 @@
 # on hosts with GPUs.
 # The image below is a pinned version of nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04 (from Jan 2018)
 # If updating the base image, be sure to test on GPU since it has broken in the past.
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04
 
 SHELL ["/bin/bash", "-c"]
 
@@ -15,7 +15,7 @@ RUN apt-get update -q \
     cmake \
     curl \
     git \
-    libav-tools \
+    # libav-tools \
     libgl1-mesa-dev \
     libgl1-mesa-glx \
     libglew-dev \
@@ -46,9 +46,9 @@ ENV LD_LIBRARY_PATH /usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 ##########################################################
 ### gsutil
 ##########################################################
-RUN curl -sSL https://sdk.cloud.google.com | bash
+# RUN curl -sSL https://sdk.cloud.google.com | bash
 
-ENV PATH $PATH:/root/google-cloud-sdk/bin
+# ENV PATH $PATH:/root/google-cloud-sdk/bin
 
 ##########################################################
 ### MuJoCo
@@ -71,25 +71,81 @@ COPY ./azure/files/mjkey.txt /root/.mujoco
 ##########################################################
 ### Example Python Installation
 ##########################################################
-ENV PATH /opt/conda/bin:$PATH
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-    /bin/bash /tmp/miniconda.sh -b -p /opt/conda && \
-    rm /tmp/miniconda.sh && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> /etc/bash.bashrc
+# ENV PATH /opt/conda/bin:$PATH
+# RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
+#     /bin/bash /tmp/miniconda.sh -b -p /opt/conda && \
+#     rm /tmp/miniconda.sh && \
+#     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+#     echo ". /opt/conda/etc/profile.d/conda.sh" >> /etc/bash.bashrc
 
-RUN conda update -y --name base conda && conda clean --all -y
+# RUN . /opt/conda/etc/profile.d/conda.sh && \
+#     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+#     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
+#     conda update -y --name base conda && \
+#     conda clean --all -y
+# PyTorch with CUDA 11.1 support
+--find-links https://download.pytorch.org/whl/torch_stable.html
 
-RUN git config --global url."https://".insteadOf git://
-RUN conda env create -f /opt/environment.yml
-ENV PATH /opt/conda/envs/diffusion/bin:$PATH
+# Core dependencies
+numpy
+gymnasium>=0.28.0
+mujoco-py==2.1.2.14
+matplotlib>=3.5.0
+torch==1.9.1+cu111
+typed-argument-parser
+
+# D4RL dataset
+git+https://github.com/Farama-Foundation/d4rl@f2a05c0d66722499bf8031b094d9af3aea7c372b#egg=d4rl
+
+# Image and video processing
+scikit-image>=0.20.0
+scikit-video>=1.1.11
+pillow
+
+# Development and utilities
+gitpython
+einops
+tqdm
+pandas
+wandb
+humanfriendly>=4.7
+
+# JAX ecosystem
+flax>=0.3.5
+jax>=0.2.21
+
+# Distributed computing
+ray>=2.31.0
+
+# Google Cloud utilities
+crcmod
+google-api-python-client
+cryptography
+gdown
+
+# Custom package
+git+https://github.com/JannerM/doodad.git@janner
+
+# RUN git config --global url."https://".insteadOf git://
+# RUN conda env create -f /opt/environment.yml
+# ENV PATH /opt/conda/envs/diffusion/bin:$PATH
+
+RUN apt -get update -q \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip python3-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ./azure/files/requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-build-isolation -r /tmp/requirements.txt
 
 ##########################################################
 ### gym sometimes has this patchelf issue
 ##########################################################
 RUN curl -o /usr/local/bin/patchelf https://s3-us-west-2.amazonaws.com/openai-sci-artifacts/manual-builds/patchelf_0.9_amd64.elf \
     && chmod +x /usr/local/bin/patchelf
+
+# RUN apt-get install -y patchelf
 # RUN pip install gym[all]==0.12.5
 
-RUN echo "source activate /opt/conda/envs/diffusion && export PYTHONPATH=$PYTHONPATH:/home/code && export CUDA_VISIBLE_DEVICES=0" >> ~/.bashrc
+# RUN echo "source activate /opt/conda/envs/diffusion && export PYTHONPATH=$PYTHONPATH:/home/code && export CUDA_VISIBLE_DEVICES=0" >> ~/.bashrc
 RUN source ~/.bashrc
